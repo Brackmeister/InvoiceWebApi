@@ -1,42 +1,41 @@
-﻿using Microsoft.AspNet.Mvc;
-using Npgsql;
-using System;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNet.Mvc;
+using Npgsql;
+using Dapper;
 
 namespace InvoiceWebApi
 {
     [Route("/api/invoices")]
     public class InvoicesController : Controller
     {
+        private const string ConnectionString = "Host=pgdb,Username=postgres;Password=P@ssw0rd!";
+
         [HttpGet]
-        public IEnumerable<Invoice> Get()
+        public async Task<IEnumerable<Invoice>> Get()
         {
-            using (var conn = new NpgsqlConnection("Host=pgdb;Username=postgres;Password=P@ssw0rd!"))
+            using (var conn = new NpgsqlConnection(ConnectionString))
             {
-                conn.Open();
-                using (var cmd = new NpgsqlCommand())
+                await conn.OpenAsync();
+                return await conn.QueryAsync<Invoice>("select * from invoices;");
+            }
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> Add([FromBody]Invoice newInvoice)
+        {
+            using (var conn = new NpgsqlConnection(ConnectionString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
                 {
-                    cmd.Connection = conn;
-
-                    // Insert some data
-                    cmd.CommandText = "SELECT * FROM Invoices;";
-                    var result = new List<Invoice>();
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            result.Add(new Invoice
-                            {
-                                ID = reader.GetInt32(0),
-                                Description = reader.GetString(1),
-                                Customer = reader.GetString(2)
-                            });
-                        }
-
-                        return result;
-                    }
+                    cmd.CommandText = "insert into invoices values (@Id, @Description, @Customer)";
+                    cmd.Parameters.AddWithValue("@Id", newInvoice.Id);
+                    cmd.Parameters.AddWithValue("@Description", newInvoice.Description);
+                    cmd.Parameters.AddWithValue("@Customer", newInvoice.Customer);
+                    await cmd.ExecuteNonQueryAsync();
+                    return this.Ok();
                 }
             }
         }

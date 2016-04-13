@@ -11,16 +11,31 @@ namespace InvoiceWebApi
 {
     public class Startup
     {
+        // configure dependency injection (no need for unity)
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
         }
 
+        // configure pipeline
         public void Configure(IApplicationBuilder app)
         {
             app.UseIISPlatformHandler();
 
             app.UseMvc();
+
+            // app.Use(async (context, next) =>
+            // {
+            //     await context.Response.WriteAsync(">>>");
+            //     await next();
+            //     await context.Response.WriteAsync("<<<");
+            //}
+            //     );
+
+            // app.Run(async (context) =>
+            // {
+            //     await context.Response.WriteAsync("Hello World!");
+            // });
         }
 
         public static void Main(string[] args) => WebApplication.Run<Startup>(args);
